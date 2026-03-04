@@ -4,141 +4,124 @@ import HomeChatbotPage
 import farm_profile
 import lender_dashboard
 import insights_feature_analysis as insights
+import voice_assistant  # The new voice-to-credit module
 from openai import OpenAI
-import os
 
-# --- Featherless.ai Engine Configuration ---
-# This centralizes the API logic for use across the Home and Chatbot pages.
-def get_ai_engine():
-    if "FEATHERLESS_API_KEY" in st.secrets:
-        return OpenAI(
-            base_url="https://api.featherless.ai/v1",
-            api_key=st.secrets["FEATHERLESS_API_KEY"]
-        )
-    return None
-
-# ---- Background Style ----
-def set_bg_animation():
+# ---- Background & Theme Styling ----
+def set_custom_style():
     st.markdown("""
     <style>
     .main {
-        background-color: #f0f4f8; 
-        padding: 20px;
-        border-radius: 10px;
+        background-color: #f4f7f6;
     }
     .stButton>button {
         color: white;
-        background-color: #2e7d32; /* Forest Green for Agriculture theme */
-        border-radius: 8px;
+        background-color: #2e7d32;
+        border-radius: 10px;
+        height: 3em;
         width: 100%;
+        font-weight: bold;
     }
-    .sidebar .sidebar-content {
-        background-image: linear-gradient(#2e7d32, #1b5e20);
-        color: white;
+    .stAudioInput {
+        border: 2px solid #2e7d32;
+        border-radius: 15px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# ---- Session Setup ----
+# ---- Session State Initialization ----
 if "selected_nav" not in st.session_state:
     st.session_state.selected_nav = "🏠 Home"
 
-# ---- Sidebar Navigation ----
-with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/2572/2572512.png", width=100) # Optional Logo
-    selected = option_menu(
-        "Farm Ledger Menu",
-        ["🏠 Home", "🤖 Chatbot", "📋 Farmer Credit Profile", "📊 Lender Dashboard", "📈 Insights", "💡 About the AI"],
-        icons=["house", "robot", "person-badge", "speedometer2", "graph-up", "info-circle"],
-        menu_icon="cast",
-        default_index=0
-    )
-    st.session_state.selected_nav = selected
-    
-    st.sidebar.markdown("---")
-    st.sidebar.write("🟢 **System Status: Online**")
-    st.sidebar.write("API: Featherless.ai (Llama 3.1)")
+def main():
+    set_custom_style()
 
-set_bg_animation()
-
-# ---- Home Page ----
-if st.session_state.selected_nav == "🏠 Home":
-    st.title("🌾 Farm Ledger: Hybrid AI Credit Scoring")
-    st.markdown(
-        """
-        ### Transforming Rural Finance with Explainable AI
-        Welcome to **Farm Ledger**, a production-grade platform that combines **Machine Learning** with 
-        **Generative AI** to make credit scoring fair, fast, and transparent.
+    # ---- Sidebar Navigation ----
+    with st.sidebar:
+        st.title("🌾 Farm Ledger")
+        st.markdown("---")
+        selected = option_menu(
+            "Navigation",
+            ["🏠 Home", "🤖 Chatbot", "🎙️ Voice Assistant", "📋 Farmer Credit Profile", "📊 Lender Dashboard", "📈 Insights", "💡 About the AI"],
+            icons=["house", "robot", "mic", "person-badge", "speedometer2", "graph-up", "info-circle"],
+            menu_icon="cast",
+            default_index=0,
+            styles={
+                "container": {"padding": "5!important", "background-color": "#fafafa"},
+                "icon": {"color": "#2e7d32", "font-size": "25px"}, 
+                "nav-link": {"font-size": "16px", "text-align": "left", "margin":"0px", "--hover-color": "#eee"},
+                "nav-link-selected": {"background-color": "#2e7d32"},
+            }
+        )
+        st.session_state.selected_nav = selected
         
-        **What would you like to do today?**
-        """, unsafe_allow_html=True
-    )
+        st.sidebar.markdown("---")
+        st.sidebar.info(f"**Backend:** Featherless.ai API\n\n**Model:** Llama 3.1 & Logistic Regression")
 
-    # Grid Layout for Navigation
-    col1, col2 = st.columns(2)
-    with col1:
-        with st.container():
-            st.subheader("🤖 AI Chatbot")
-            st.write("Talk to our AI assistant to analyze specific farmer profiles using natural language.")
-            if st.button("Launch Chatbot"):
+    # ---- Page Routing Logic ----
+    if st.session_state.selected_nav == "🏠 Home":
+        st.title("🚜 Farm Ledger: AI-Driven Credit Scoring")
+        st.markdown("""
+        ### Empowering Farmers with Explainable AI
+        Welcome to the next generation of agricultural finance. **Farm Ledger** uses a hybrid approach:
+        - **Precision:** Machine Learning (Logistic Regression) for data-driven approvals.
+        - **Inclusion:** Voice-to-Text for accessible credit profiling.
+        - **Transparency:** Featherless.ai (LLMs) to explain every financial decision.
+        """)
+        
+        # Dashboard Shortcut Buttons
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("🎤 Try Voice Assistant"):
+                st.session_state.selected_nav = "🎙️ Voice Assistant"
+                st.rerun()
+            if st.button("📈 View Insights"):
+                st.session_state.selected_nav = "📈 Insights"
+                st.rerun()
+        with col2:
+            if st.button("🤖 Launch Chatbot"):
                 st.session_state.selected_nav = "🤖 Chatbot"
                 st.rerun()
+            if st.button("📊 Bulk Processing"):
+                st.session_state.selected_nav = "📊 Lender Dashboard"
+                st.rerun()
 
-        st.subheader("📊 Lender Hub")
-        st.write("Process bulk CSV files and generate instant credit approvals for hundreds of farmers.")
-        if st.button("Open Lender Dashboard"):
-            st.session_state.selected_nav = "📊 Lender Dashboard"
-            st.rerun()
+    elif st.session_state.selected_nav == "🎙️ Voice Assistant":
+        voice_assistant.render()
 
-    with col2:
-        st.subheader("📋 Credit Profiling")
-        st.write("Manually enter farmer data to see how different ML models (Logistic vs Tree) rank them.")
-        if st.button("Go to Profiler"):
-            st.session_state.selected_nav = "📋 Farmer Credit Profile"
-            st.rerun()
+    elif st.session_state.selected_nav == "🤖 Chatbot":
+        HomeChatbotPage.render()
 
-        st.subheader("📈 Insights")
-        st.write("Visualize demographic trends and approval rates across urban and rural sectors.")
-        if st.button("View Analysis"):
-            st.session_state.selected_nav = "📈 Insights"
-            st.rerun()
+    elif st.session_state.selected_nav == "📋 Farmer Credit Profile":
+        farm_profile.render()
+
+    elif st.session_state.selected_nav == "📊 Lender Dashboard":
+        lender_dashboard.render()
+
+    elif st.session_state.selected_nav == "📈 Insights":
+        insights.render()
+
+    elif st.session_state.selected_nav == "💡 About the AI":
+        st.title("💡 The Technology Behind Farm Ledger")
+        
+        st.subheader("1. The Decision Engine")
+        st.write("""
+        We utilize a **Logistic Regression** model for its transparency in high-stakes financial decisions. 
+        It evaluates features like education, community tenure, and phone access to predict loan repayment 
+        probability with mathematical precision.
+        """)
+
+        st.subheader("2. The Reasoning Layer")
+        st.write("""
+        Powered by **Featherless.ai**, we integrate Meta's Llama 3.1 model to perform:
+        - **Feature Extraction:** Converting raw voice recordings into structured data.
+        - **Natural Language Explanations:** Translating complex probability scores into actionable advice.
+        """)
+        
+        
 
     st.markdown("---")
-    st.markdown("<div style='text-align: center;'>📌 Developed for the 2026 AI Innovation Hackathon | <strong>Farm Ledger Team</strong></div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align: center;'>📌 Built for the 2026 AI Innovation Hackathon | <strong>Farm Ledger Team</strong></div>", unsafe_allow_html=True)
 
-# ---- About the AI Page (New Subsection) ----
-elif st.session_state.selected_nav == "💡 About the AI":
-    st.title("💡 The Hybrid AI Architecture")
-    st.markdown("""
-    This project utilizes a **Two-Tiered AI Stack** to solve the 'Black Box' problem in financial services.
-    """)
-
-    
-
-    st.write("### 1. The Decision Engine (Scikit-Learn)")
-    st.write("""
-    We use **Logistic Regression** and **Decision Trees** for the actual scoring. 
-    These models were trained on Nigerian agricultural demographic data. 
-    They provide the *Probability Score*.
-    """)
-
-    st.write("### 2. The Explanation Layer (Featherless.ai)")
-    st.write("""
-    Raw scores are passed to **Featherless.ai** (Meta-Llama-3.1-8B-Instruct). 
-    The API analyzes the feature importance and generates a **Natural Language Explanation** so farmers know exactly how to improve their scores.
-    """)
-    
-    st.success("**Why Featherless?** It allows us to run state-of-the-art LLMs via serverless API, making our app lightweight and scalable for rural deployment.")
-
-# ---- Page Routing ----
-elif st.session_state.selected_nav == "🤖 Chatbot":
-    HomeChatbotPage.render()
-
-elif st.session_state.selected_nav == "📋 Farmer Credit Profile":
-    farm_profile.render()
-
-elif st.session_state.selected_nav == "📊 Lender Dashboard":
-    lender_dashboard.render()
-
-elif st.session_state.selected_nav == "📈 Insights":
-    insights.render()
+if __name__ == "__main__":
+    main()
