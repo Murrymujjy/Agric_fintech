@@ -6,42 +6,52 @@ import lender_dashboard
 import insights_feature_analysis as insights
 import voice_assistant 
 
-# --- Global Configuration & Translation ---
+# --- Global Translation Engine ---
 def get_translations(lang):
+    # Expanded to support the top African languages as requested [cite: 2025-12-20]
     translations = {
         "English": {"welcome": "Welcome to Farm Ledger Africa", "sub": "Select a feature to begin:", "chat": "AI Chatbot", "voice": "Voice Assistant", "profile": "Farmer Profile", "lender": "Lender Dashboard"},
         "Luganda (Uganda)": {"welcome": "Kulaba ku Farm Ledger Africa", "sub": "Londako wamanga okutandika:", "chat": "Chatbot y'amagezi", "voice": "Okukozesa eddoboozi", "profile": "Ebikwata ku mulimi", "lender": "Ebirowoozo by'abawozi"},
         "Yoruba (Nigeria)": {"welcome": "Ẹ kú àbọ̀ sí Farm Ledger Africa", "sub": "Yan ohun èlò kan láti bẹ̀rẹ̀:", "chat": "AI Chatbot", "voice": "Olùrànlọ́wọ́ Ohùn", "profile": "Ìròyìn Àgbẹ̀", "lender": "Dashboard Ayínilò"},
+        "Hausa (Nigeria)": {"welcome": "Barka da zuwa Farm Ledger Africa", "sub": "Zaɓi siffa don farawa:", "chat": "AI Chatbot", "voice": "Mataimakin Murya", "profile": "Bayanin Manomi", "lender": "Dashboard na Mai Ba da Lamuni"},
+        "Swahili (East Africa)": {"welcome": "Karibu kwenye Farm Ledger Africa", "sub": "Chagua kipengele ili kuanza:", "chat": "AI Chatbot", "voice": "Msaidizi wa Sauti", "profile": "Wasifu wa Mkulima", "lender": "Dashboard ya Mkopeshi"},
+        "Zulu (South Africa)": {"welcome": "Siyakwamukela ku-Farm Ledger Africa", "sub": "Khetha isici ukuze uqale:", "chat": "I-AI Chatbot", "voice": "Umsizi Wezwi", "profile": "Umlando Womlimi", "lender": "Ideshibhodi Yombolekisi"},
+        "Amharic (Ethiopia)": {"welcome": "ወደ Farm Ledger Africa እንኳን ደህና መጡ", "sub": "ለመጀመር ባህሪ ይምረጡ:", "chat": "AI ቻትቦት", "voice": "የድምጽ ረዳት", "profile": "የገበሬ መገለጫ", "lender": "የአበዳሪ ዳሽቦርድ"},
+        "Igbo (Nigeria)": {"welcome": "Nnọọ na Farm Ledger Africa", "sub": "Họrọ atụmatụ ị ga-amalite:", "chat": "AI Chatbot", "voice": "Onye na-enyere aka olu", "profile": "Profaịlụ onye ọrụ ugbo", "lender": "Dashboard onye na-agbazinye ego"},
+        "Wolof (Senegal)": {"welcome": "Dalal jàmm ci Farm Ledger Africa", "sub": "Tannal ab tànneef ngir tàmbali:", "chat": "AI Chatbot", "voice": "Ndimbalu Baat", "profile": "Mbirum tukkàt bi", "lender": "Dashboard njaatige bi"},
+        "Afrikaans (South Africa)": {"welcome": "Welkom by Farm Ledger Africa", "sub": "Kies 'n funksie om te begin:", "chat": "Kletsbot", "voice": "Stemassistent", "profile": "Boerprofiel", "lender": "Kredietgewer-paneelbord"}
     }
     return translations.get(lang, translations["English"])
 
 def main():
     st.set_page_config(page_title="Farm Ledger Africa", page_icon="🌾", layout="wide")
 
-    # --- Language Selection (Global State) ---
+    # --- Global Navigation & Language State ---
     if "lang" not in st.session_state:
         st.session_state.lang = "English"
     if "selected_nav" not in st.session_state:
         st.session_state.selected_nav = "🏠 Home"
 
     with st.sidebar:
-        st.title("🌍 Global Settings")
-        st.session_state.lang = st.selectbox("Choose Language / Londako Olulimi:", 
-            ["English", "Luganda (Uganda)", "Yoruba (Nigeria)", "Hausa (Nigeria)", "Swahili (East Africa)"])
+        st.title("🌍 Language / Olulimi")
+        st.session_state.lang = st.selectbox("Global Language Setting:", 
+            ["English", "Luganda (Uganda)", "Yoruba (Nigeria)", "Hausa (Nigeria)", "Igbo (Nigeria)", 
+             "Swahili (East Africa)", "Zulu (South Africa)", "Amharic (Ethiopia)", "Wolof (Senegal)", "Afrikaans (South Africa)"])
         
         st.markdown("---")
+        # Ensure the sidebar menu stays synced with home page clicks [cite: 2026-02-07]
+        nav_options = ["🏠 Home", "🤖 Chatbot", "🎙️ Voice Assistant", "📋 Farmer Profile", "📊 Lender Dashboard", "📈 Insights"]
         selected = option_menu(
-            "Main Menu",
-            ["🏠 Home", "🤖 Chatbot", "🎙️ Voice Assistant", "📋 Farmer Profile", "📊 Lender Dashboard", "📈 Insights"],
+            "Main Menu", nav_options,
             icons=["house", "robot", "mic", "person-badge", "speedometer2", "graph-up"],
             menu_icon="cast", 
-            default_index=0
+            default_index=nav_options.index(st.session_state.selected_nav)
         )
         st.session_state.selected_nav = selected
 
     t = get_translations(st.session_state.lang)
 
-    # ---- Clickable Interactive Home Page ----
+    # ---- Clickable Dashboard Logic [cite: 2026-02-07] ----
     if st.session_state.selected_nav == "🏠 Home":
         st.title(f"🚜 {t['welcome']}")
         st.markdown(f"### {t['sub']}")
@@ -50,33 +60,30 @@ def main():
         with col1:
             with st.container(border=True):
                 st.subheader(f"🤖 {t['chat']}")
-                st.write("Analyze profiles via text chat.")
-                if st.button("Open Chatbot ➔", key="btn_chat"):
+                st.write("Instant credit analysis via text.")
+                if st.button(f"Go to {t['chat']} ➔", key="btn_chat"):
                     st.session_state.selected_nav = "🤖 Chatbot"
+                    st.rerun()
+
+            with st.container(border=True):
+                st.subheader(f"📋 {t['profile']}")
+                st.write("Deep-dive manual credit evaluation.")
+                if st.button(f"Go to {t['profile']} ➔", key="btn_profile"):
+                    st.session_state.selected_nav = "📋 Farmer Profile"
                     st.rerun()
 
         with col2:
             with st.container(border=True):
                 st.subheader(f"🎙️ {t['voice']}")
-                st.write("Use your voice to apply for credit.")
-                if st.button("Start Voice Entry ➔", key="btn_voice"):
+                st.write("Multi-lingual voice-to-credit engine.")
+                if st.button(f"Go to {t['voice']} ➔", key="btn_voice"):
                     st.session_state.selected_nav = "🎙️ Voice Assistant"
                     st.rerun()
 
-        col3, col4 = st.columns(2)
-        with col3:
-            with st.container(border=True):
-                st.subheader(f"📋 {t['profile']}")
-                st.write("Manual entry for detailed credit scoring.")
-                if st.button("Go to Profiler ➔", key="btn_profile"):
-                    st.session_state.selected_nav = "📋 Farmer Profile"
-                    st.rerun()
-
-        with col4:
             with st.container(border=True):
                 st.subheader(f"📊 {t['lender']}")
-                st.write("Bulk processing for institutions.")
-                if st.button("Open Dashboard ➔", key="btn_lender"):
+                st.write("Bulk institution processing hub.")
+                if st.button(f"Go to {t['lender']} ➔", key="btn_lender"):
                     st.session_state.selected_nav = "📊 Lender Dashboard"
                     st.rerun()
 
