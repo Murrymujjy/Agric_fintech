@@ -1,39 +1,44 @@
 import streamlit as st
-import joblib
-import numpy as np
-import re
 from openai import OpenAI
+import joblib
 
 def render():
-    # 1. Setup API Client
+    # 1. API Client Setup
     client = OpenAI(
         base_url="https://api.featherless.ai/v1",
         api_key=st.secrets["FEATHERLESS_API_KEY"]
     )
     
-    # 2. Load the Decision Engine [cite: 2026-03-02]
-    try:
-        model = joblib.load("models_logistic_regression_model.pkl")
-    except Exception:
-        st.error("Decision model not found. Please upload models_logistic_regression_model.pkl")
-        return
-
-    # 3. Dynamic UI based on Global Language
-    current_lang = st.session_state.lang
+    # 2. Page Title & Language Sync [cite: 2025-12-20, 2026-03-02]
+    current_lang = st.session_state.get('lang', 'English')
     st.title(f"🤖 AI Chatbot ({current_lang})")
-    st.markdown(f"I can analyze creditworthiness and explain it in **{current_lang}**.")
 
-    # Chat History Session State
+    # --- THE NOTIFICATION BOX ---
+    # Notifies the user that the Chatbot is using their Profile data [cite: 2026-03-02]
+    if "last_profile" in st.session_state:
+        p = st.session_state.last_profile
+        # Using a green-bordered container for brand consistency
+        with st.container(border=True):
+            st.success(f"✅ **{current_lang} Notification:**")
+            st.write(f"""
+            This chatbot is currently synchronized with your **Farmer Profile**. 
+            It is analyzing your specific data (Age: {p['age']}, Sector: {p['sector']}) 
+            to explain why the model gave you a status of **{p['prediction']}**.
+            """)
+    else:
+        st.warning("⚠️ **Note:** To get personalized explanations, please complete your **Farmer Profile** first.")
+
+    # 3. Chat History Setup
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
-    # Display History
+    # Display Chat History
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-    # --- Input Processing ---
-    prompt = st.chat_input("Ex: A 35 year old farmer in a rural area...")
+    # 4. Input Processing with Context
+    prompt = st.chat_input("Ask me anything about your credit result...")
 
     if prompt:
         st.session_state.messages.append({"role": "user", "content": prompt})
@@ -41,51 +46,36 @@ def render():
             st.markdown(prompt)
 
         with st.chat_message("assistant"):
-            with st.spinner("Thinking..."):
+            with st.spinner("Analyzing profile context..."):
                 try:
-                    # A. Use LLM to extract numerical data from text
-                    # This handles varied phrasing across different languages
-                    extract_prompt = f"""
-                    Extract 6 features from: "{prompt}". 
-                    Format: [Age, YearsInCommunity, Education(0-8), HasPhone(0/1), Rural(1)/Urban(0), WomenSupport(0/1)]
-                    Return ONLY the list. Example: [35, 10, 4, 1, 1, 0]
-                    """
-                    
-                    extraction = client.chat.completions.create(
-                        model="meta-llama/Meta-Llama-3.1-8B-Instruct",
-                        messages=[{"role": "user", "content": extract_prompt}],
-                        max_tokens=100
-                    )
-                    
-                    data_list = eval(extraction.choices[0].message.content.strip().strip('`'))
-                    X = np.array([data_list])
+                    # Injecting the profile data into the system prompt
+                    profile_info = ""
+                    if "last_profile" in st.session_state:
+                        profile_info = f"The user's profile details are: {st.session_state.last_profile}."
 
-                    # B. Perform Mathematical Credit Scoring [cite: 2026-03-02]
-                    prediction = model.predict(X)[0]
-                    prob = model.predict_proba(X)[0][1]
-
-                    # C. Generate Explanation in Selected Language
-                    explain_prompt = f"""
-                    User Question: "{prompt}"
-                    Decision: {'Approved' if prediction == 1 else 'High Risk'}
-                    Confidence: {prob:.2f}
-                    
-                    Translate the decision into {current_lang} and provide a 2-sentence 
-                    explanation in {current_lang} about why this was the result.
+                    system_instructions = f"""
+                    You are a financial inclusion assistant for African farmers.
+                    Context: {profile_info}
+                    Response Language: {current_lang}
+                    Goal: Explain the credit status clearly based on the provided profile details.
                     """
-                    
-                    explanation = client.chat.completions.create(
+
+                    response = client.chat.completions.create(
                         model="meta-llama/Meta-Llama-3.1-8B-Instruct",
-                        messages=[{"role": "user", "content": explain_prompt}],
+                        messages=[
+                            {"role": "system", "content": system_instructions},
+                            {"role": "user", "content": prompt}
+                        ],
                         max_tokens=500
                     )
                     
-                    final_reply = explanation.choices[0].message.content
-                    st.markdown(final_reply)
-                    st.session_state.messages.append({"role": "assistant", "content": final_reply})
+                    final_text = response.choices[0].message.content
+                    st.markdown(final_text)
+                    st.session_state.messages.append({"role": "assistant", "content": final_text})
 
                 except Exception as e:
-                    st.error(f"Error: {e}. Please try again.")
+                    st.error(f"Error connecting to AI: {e}")
 
+    # Footer with Green Branding
     st.markdown("---")
-    st.markdown(f"<div style='text-align: center;'>📌 Multi-Lingual AI Engine | <strong>Farm Ledger</strong></div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='text-align: center; color: #2E7D32;'>🌍 Powered by <strong>Farm Ledger Africa</strong> in {current_lang}</div>", unsafe_allow_html=True)
