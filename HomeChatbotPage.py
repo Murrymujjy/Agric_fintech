@@ -88,7 +88,7 @@ def render():
                             {"role": "system", "content": "You are an expert Agricultural Credit Officer."},
                             {"role": "user", "content": ai_prompt}
                         ]
-                        max_tokens=1000
+                        max_tokens=500
                     )
                     
                     full_reply = response.choices[0].message.content
@@ -97,4 +97,5 @@ def render():
 
                 except Exception as e:
                     st.error(f"Error connecting to Featherless.ai: {e}")
+
 
