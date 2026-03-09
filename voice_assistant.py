@@ -16,16 +16,27 @@ def render():
         api_key=st.secrets["FEATHERLESS_API_KEY"]
     )
     
-    # Load ML Model
-    model = joblib.load("models_logistic_regression_model.pkl")
+    # Load ML Model (Ensure the filename matches your file system)
+    try:
+        model = joblib.load("models_logistic_regression_model.pkl")
+    except Exception as e:
+        st.error(f"Error loading model: {e}")
+        return
 
     # --- Step 1: Voice Input ---
+    # st.audio_input provides the recording interface
     audio_file = st.audio_input("Record your profile (e.g., 'I am 45 years old, I live in a rural area and have a secondary education')")
 
     if audio_file:
+        # --- THE CRITICAL FIXES ---
+        # 1. Provide a name with extension so the API identifies the format
+        audio_file.name = "recording.wav" 
+        # 2. Reset the pointer to the start of the file for reading
+        audio_file.seek(0) 
+
         with st.spinner("Processing your voice..."):
             try:
-                # A. Transcribe Voice to Text
+                # A. Transcribe Voice to Text using Whisper
                 transcript = client.audio.transcriptions.create(
                     model="whisper-1", 
                     file=audio_file
@@ -33,8 +44,7 @@ def render():
                 user_text = transcript.text
                 st.info(f"**Transcribed:** {user_text}")
 
-                # B. Use LLM to extract data points
-                # We force the LLM to return a clean list for our ML model
+                # B. Use LLM to extract data points for the ML Model
                 extract_prompt = f"""
                 Analyze the following text and extract these 6 features for a credit model:
                 1. Age (int)
@@ -50,15 +60,18 @@ def render():
                 
                 extraction = client.chat.completions.create(
                     model="meta-llama/Meta-Llama-3.1-8B-Instruct",
-                    messages=[{"role": "user", "content": extract_prompt}]
+                    messages=[{"role": "user", "content": extract_prompt}],
+                    max_tokens=500 # Kept low to avoid context window errors
                 )
                 
                 # Convert string response to Python list
-                raw_list = extraction.choices[0].message.content
-                data_list = eval(raw_list)
+                raw_list = extraction.choices[0].message.content.strip()
+                # Clean potential backticks if the AI wraps it in markdown
+                clean_list = raw_list.replace("```python", "").replace("```", "").strip()
+                data_list = eval(clean_list)
                 X = np.array([data_list])
 
-                # C. Run Prediction
+                # C. Run Prediction using Logistic Regression
                 prediction = model.predict(X)[0]
                 prob = model.predict_proba(X)[0][1]
 
@@ -78,4 +91,8 @@ def render():
                 st.write(explanation.choices[0].message.content)
 
             except Exception as e:
-                st.error("There was an issue processing the audio. Please ensure your microphone is clear and the API key is valid.")
+                st.error(f"Processing Error: {e}")
+                st.write("Check your API key in secrets.toml or ensure your internet connection is stable.")
+
+    st.markdown("---")
+    st.markdown("<div style='text-align: center;'>📌 Made with ❤️ by <strong>Farm Ledger</strong></div>", unsafe_allow_html=True)
