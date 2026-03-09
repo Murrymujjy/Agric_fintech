@@ -3,42 +3,31 @@ from openai import OpenAI
 import joblib
 
 def render():
-    # 1. API Client Setup
     client = OpenAI(
         base_url="https://api.featherless.ai/v1",
         api_key=st.secrets["FEATHERLESS_API_KEY"]
     )
     
-    # 2. Page Title & Language Sync [cite: 2025-12-20, 2026-03-02]
     current_lang = st.session_state.get('lang', 'English')
-    st.title(f"🤖 AI Chatbot ({current_lang})")
+    st.markdown(f"<h1 style='color: #2E7D32;'>🤖 AI Chatbot ({current_lang})</h1>", unsafe_allow_html=True)
 
-    # --- THE NOTIFICATION BOX ---
-    # Notifies the user that the Chatbot is using their Profile data [cite: 2026-03-02]
+    # --- Context Sync Notification ---
     if "last_profile" in st.session_state:
         p = st.session_state.last_profile
-        # Using a green-bordered container for brand consistency
         with st.container(border=True):
             st.success(f"✅ **{current_lang} Notification:**")
-            st.write(f"""
-            This chatbot is currently synchronized with your **Farmer Profile**. 
-            It is analyzing your specific data (Age: {p['age']}, Sector: {p['sector']}) 
-            to explain why the model gave you a status of **{p['prediction']}**.
-            """)
+            st.write(f"I am synchronized with the profile for the **{p['age']}-year-old farmer** from the **{p['sector']}** sector. My analysis is based on your **{p['prediction']}** status.")
     else:
-        st.warning("⚠️ **Note:** To get personalized explanations, please complete your **Farmer Profile** first.")
+        st.warning("⚠️ Please complete your **Farmer Profile** first for personalized credit analysis.")
 
-    # 3. Chat History Setup
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
-    # Display Chat History
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-    # 4. Input Processing with Context
-    prompt = st.chat_input("Ask me anything about your credit result...")
+    prompt = st.chat_input("Ask about your credit score...")
 
     if prompt:
         st.session_state.messages.append({"role": "user", "content": prompt})
@@ -46,18 +35,14 @@ def render():
             st.markdown(prompt)
 
         with st.chat_message("assistant"):
-            with st.spinner("Analyzing profile context..."):
+            with st.spinner("Processing..."):
                 try:
-                    # Injecting the profile data into the system prompt
-                    profile_info = ""
-                    if "last_profile" in st.session_state:
-                        profile_info = f"The user's profile details are: {st.session_state.last_profile}."
-
+                    profile_info = st.session_state.get("last_profile", "No specific profile loaded yet.")
                     system_instructions = f"""
-                    You are a financial inclusion assistant for African farmers.
+                    You are a financial inclusion assistant. 
                     Context: {profile_info}
-                    Response Language: {current_lang}
-                    Goal: Explain the credit status clearly based on the provided profile details.
+                    Language: {current_lang}
+                    Answer based on the specific farmer profile details provided.
                     """
 
                     response = client.chat.completions.create(
@@ -69,13 +54,12 @@ def render():
                         max_tokens=500
                     )
                     
-                    final_text = response.choices[0].message.content
-                    st.markdown(final_text)
-                    st.session_state.messages.append({"role": "assistant", "content": final_text})
+                    reply = response.choices[0].message.content
+                    st.markdown(reply)
+                    st.session_state.messages.append({"role": "assistant", "content": reply})
 
                 except Exception as e:
-                    st.error(f"Error connecting to AI: {e}")
+                    st.error(f"Error: {e}")
 
-    # Footer with Green Branding
     st.markdown("---")
-    st.markdown(f"<div style='text-align: center; color: #2E7D32;'>🌍 Powered by <strong>Farm Ledger Africa</strong> in {current_lang}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='text-align: center; color: #2E7D32;'>🌾 <strong>Farm Ledger Africa</strong> | Powered by AI ({current_lang})</div>", unsafe_allow_html=True)
