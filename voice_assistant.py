@@ -73,6 +73,7 @@ def render():
                 explanation = client.chat.completions.create(
                     model="meta-llama/Meta-Llama-3.1-8B-Instruct",
                     messages=[{"role": "user", "content": explain_prompt}]
+                    max_tokens=500
                 )
                 st.write(explanation.choices[0].message.content)
 
