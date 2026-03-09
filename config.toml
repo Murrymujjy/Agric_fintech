@@ -1,0 +1,6 @@
+[theme]
+primaryColor = "#2E7D32"  # A professional Forest Green
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F1F8E9" # Very light green for cards
+textColor = "#1B5E20"
+font = "sans serif"
