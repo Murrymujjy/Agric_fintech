@@ -4,124 +4,93 @@ import HomeChatbotPage
 import farm_profile
 import lender_dashboard
 import insights_feature_analysis as insights
-import voice_assistant  # The new voice-to-credit module
-from openai import OpenAI
+import voice_assistant 
 
-# ---- Background & Theme Styling ----
-def set_custom_style():
-    st.markdown("""
-    <style>
-    .main {
-        background-color: #f4f7f6;
+# --- Global Configuration & Translation ---
+def get_translations(lang):
+    translations = {
+        "English": {"welcome": "Welcome to Farm Ledger Africa", "sub": "Select a feature to begin:", "chat": "AI Chatbot", "voice": "Voice Assistant", "profile": "Farmer Profile", "lender": "Lender Dashboard"},
+        "Luganda (Uganda)": {"welcome": "Kulaba ku Farm Ledger Africa", "sub": "Londako wamanga okutandika:", "chat": "Chatbot y'amagezi", "voice": "Okukozesa eddoboozi", "profile": "Ebikwata ku mulimi", "lender": "Ebirowoozo by'abawozi"},
+        "Yoruba (Nigeria)": {"welcome": "Ẹ kú àbọ̀ sí Farm Ledger Africa", "sub": "Yan ohun èlò kan láti bẹ̀rẹ̀:", "chat": "AI Chatbot", "voice": "Olùrànlọ́wọ́ Ohùn", "profile": "Ìròyìn Àgbẹ̀", "lender": "Dashboard Ayínilò"},
     }
-    .stButton>button {
-        color: white;
-        background-color: #2e7d32;
-        border-radius: 10px;
-        height: 3em;
-        width: 100%;
-        font-weight: bold;
-    }
-    .stAudioInput {
-        border: 2px solid #2e7d32;
-        border-radius: 15px;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-# ---- Session State Initialization ----
-if "selected_nav" not in st.session_state:
-    st.session_state.selected_nav = "🏠 Home"
+    return translations.get(lang, translations["English"])
 
 def main():
-    set_custom_style()
+    st.set_page_config(page_title="Farm Ledger Africa", page_icon="🌾", layout="wide")
 
-    # ---- Sidebar Navigation ----
+    # --- Language Selection (Global State) ---
+    if "lang" not in st.session_state:
+        st.session_state.lang = "English"
+    if "selected_nav" not in st.session_state:
+        st.session_state.selected_nav = "🏠 Home"
+
     with st.sidebar:
-        st.title("🌾 Farm Ledger")
+        st.title("🌍 Global Settings")
+        st.session_state.lang = st.selectbox("Choose Language / Londako Olulimi:", 
+            ["English", "Luganda (Uganda)", "Yoruba (Nigeria)", "Hausa (Nigeria)", "Swahili (East Africa)"])
+        
         st.markdown("---")
         selected = option_menu(
-            "Navigation",
-            ["🏠 Home", "🤖 Chatbot", "🎙️ Voice Assistant", "📋 Farmer Credit Profile", "📊 Lender Dashboard", "📈 Insights", "💡 About the AI"],
-            icons=["house", "robot", "mic", "person-badge", "speedometer2", "graph-up", "info-circle"],
-            menu_icon="cast",
-            default_index=0,
-            styles={
-                "container": {"padding": "5!important", "background-color": "#fafafa"},
-                "icon": {"color": "#2e7d32", "font-size": "25px"}, 
-                "nav-link": {"font-size": "16px", "text-align": "left", "margin":"0px", "--hover-color": "#eee"},
-                "nav-link-selected": {"background-color": "#2e7d32"},
-            }
+            "Main Menu",
+            ["🏠 Home", "🤖 Chatbot", "🎙️ Voice Assistant", "📋 Farmer Profile", "📊 Lender Dashboard", "📈 Insights"],
+            icons=["house", "robot", "mic", "person-badge", "speedometer2", "graph-up"],
+            menu_icon="cast", 
+            default_index=0
         )
         st.session_state.selected_nav = selected
-        
-        st.sidebar.markdown("---")
-        st.sidebar.info(f"**Backend:** Featherless.ai API\n\n**Model:** Llama 3.1 & Logistic Regression")
 
-    # ---- Page Routing Logic ----
+    t = get_translations(st.session_state.lang)
+
+    # ---- Clickable Interactive Home Page ----
     if st.session_state.selected_nav == "🏠 Home":
-        st.title("🚜 Farm Ledger: AI-Driven Credit Scoring")
-        st.markdown("""
-        ### Empowering Farmers with Explainable AI
-        Welcome to the next generation of agricultural finance. **Farm Ledger** uses a hybrid approach:
-        - **Precision:** Machine Learning (Logistic Regression) for data-driven approvals.
-        - **Inclusion:** Voice-to-Text for accessible credit profiling.
-        - **Transparency:** Featherless.ai (LLMs) to explain every financial decision.
-        """)
-        
-        # Dashboard Shortcut Buttons
+        st.title(f"🚜 {t['welcome']}")
+        st.markdown(f"### {t['sub']}")
+
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("🎤 Try Voice Assistant"):
-                st.session_state.selected_nav = "🎙️ Voice Assistant"
-                st.rerun()
-            if st.button("📈 View Insights"):
-                st.session_state.selected_nav = "📈 Insights"
-                st.rerun()
-        with col2:
-            if st.button("🤖 Launch Chatbot"):
-                st.session_state.selected_nav = "🤖 Chatbot"
-                st.rerun()
-            if st.button("📊 Bulk Processing"):
-                st.session_state.selected_nav = "📊 Lender Dashboard"
-                st.rerun()
+            with st.container(border=True):
+                st.subheader(f"🤖 {t['chat']}")
+                st.write("Analyze profiles via text chat.")
+                if st.button("Open Chatbot ➔", key="btn_chat"):
+                    st.session_state.selected_nav = "🤖 Chatbot"
+                    st.rerun()
 
+        with col2:
+            with st.container(border=True):
+                st.subheader(f"🎙️ {t['voice']}")
+                st.write("Use your voice to apply for credit.")
+                if st.button("Start Voice Entry ➔", key="btn_voice"):
+                    st.session_state.selected_nav = "🎙️ Voice Assistant"
+                    st.rerun()
+
+        col3, col4 = st.columns(2)
+        with col3:
+            with st.container(border=True):
+                st.subheader(f"📋 {t['profile']}")
+                st.write("Manual entry for detailed credit scoring.")
+                if st.button("Go to Profiler ➔", key="btn_profile"):
+                    st.session_state.selected_nav = "📋 Farmer Profile"
+                    st.rerun()
+
+        with col4:
+            with st.container(border=True):
+                st.subheader(f"📊 {t['lender']}")
+                st.write("Bulk processing for institutions.")
+                if st.button("Open Dashboard ➔", key="btn_lender"):
+                    st.session_state.selected_nav = "📊 Lender Dashboard"
+                    st.rerun()
+
+    # ---- Page Routing ----
     elif st.session_state.selected_nav == "🎙️ Voice Assistant":
         voice_assistant.render()
-
     elif st.session_state.selected_nav == "🤖 Chatbot":
         HomeChatbotPage.render()
-
-    elif st.session_state.selected_nav == "📋 Farmer Credit Profile":
+    elif st.session_state.selected_nav == "📋 Farmer Profile":
         farm_profile.render()
-
     elif st.session_state.selected_nav == "📊 Lender Dashboard":
         lender_dashboard.render()
-
     elif st.session_state.selected_nav == "📈 Insights":
         insights.render()
-
-    elif st.session_state.selected_nav == "💡 About the AI":
-        st.title("💡 The Technology Behind Farm Ledger")
-        
-        st.subheader("1. The Decision Engine")
-        st.write("""
-        We utilize a **Logistic Regression** model for its transparency in high-stakes financial decisions. 
-        It evaluates features like education, community tenure, and phone access to predict loan repayment 
-        probability with mathematical precision.
-        """)
-
-        st.subheader("2. The Reasoning Layer")
-        st.write("""
-        Powered by **Featherless.ai**, we integrate Meta's Llama 3.1 model to perform:
-        - **Feature Extraction:** Converting raw voice recordings into structured data.
-        - **Natural Language Explanations:** Translating complex probability scores into actionable advice.
-        """)
-        
-        
-
-    st.markdown("---")
-    st.markdown("<div style='text-align: center;'>📌 Built for the 2026 AI Innovation Hackathon | <strong>Farm Ledger Team</strong></div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
