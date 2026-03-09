@@ -6,79 +6,37 @@ import speech_recognition as sr
 import io
 
 def render():
-    st.title("🎙️ Voice-Activated Credit Profiler")
+    # Mapping for Google Speech API
+    lang_codes = {
+        "English": "en-US", "Luganda (Uganda)": "lg-UG", "Yoruba (Nigeria)": "yo-NG",
+        "Hausa (Nigeria)": "ha-NG", "Swahili (East Africa)": "sw-KE"
+    }
     
-    # Featherless Client (Using your $11 credit balance)
-    llm_client = OpenAI(
-        base_url="https://api.featherless.ai/v1",
-        api_key=st.secrets["FEATHERLESS_API_KEY"]
-    )
-    
-    try:
-        model = joblib.load("models_logistic_regression_model.pkl")
-    except Exception as e:
-        st.error(f"Predictive Model not found: {e}")
-        return
+    current_lang = st.session_state.lang
+    code = lang_codes.get(current_lang, "en-US")
 
-    audio_file = st.audio_input("Record your details clearly (Age, Education, Sector)")
+    st.title(f"🎙️ Voice Assistant ({current_lang})")
+    st.write(f"Please speak clearly in {current_lang}.")
+
+    audio_file = st.audio_input("Record your profile")
 
     if audio_file:
-        with st.spinner("Processing Voice..."):
+        with st.spinner("Processing..."):
+            r = sr.Recognizer()
             try:
-                # Initialize Recognizer
-                r = sr.Recognizer()
-                
-                # Convert the Streamlit UploadedFile to a BytesIO object for SpeechRecognition
                 audio_bytes = audio_file.read()
-                audio_data_io = io.BytesIO(audio_bytes)
-                
-                with sr.AudioFile(audio_data_io) as source:
-                    # Adjust for ambient noise to improve accuracy
-                    r.adjust_for_ambient_noise(source, duration=0.5)
+                with sr.AudioFile(io.BytesIO(audio_bytes)) as source:
                     audio_content = r.record(source)
                 
-                # Attempt Transcription
-                user_text = r.recognize_google(audio_content)
-                st.info(f"**Transcribed:** {user_text}")
-
-                # --- LLM Data Extraction ---
-                extract_prompt = f"""
-                Extract 6 features from: "{user_text}". 
-                Format as a list: [Age, YearsInCommunity, Education(0-8), Phone(0/1), Rural(1)/Urban(0), WomenSupport(0/1)]
-                Return ONLY the list. Example: [35, 10, 4, 1, 1, 0]
-                """
+                # Transcribe using selected African Language Code
+                user_text = r.recognize_google(audio_content, language=code)
+                st.success(f"**Transcribed:** {user_text}")
                 
-                extraction = llm_client.chat.completions.create(
-                    model="meta-llama/Meta-Llama-3.1-8B-Instruct",
-                    messages=[{"role": "user", "content": extract_prompt}],
-                    max_tokens=200
-                )
+                # (Include your Featherless.ai / ML logic here as before)
                 
-                data_list = eval(extraction.choices[0].message.content.strip().strip('`'))
-                X = np.array([data_list])
-
-                # --- Prediction ---
-                prediction = model.predict(X)[0]
-                prob = model.predict_proba(X)[0][1]
-
-                st.subheader("📊 Credit Assessment Result")
-                if prediction == 1:
-                    st.success(f"✅ Approved | Confidence: {prob:.2f}")
-                else:
-                    st.error(f"⚠️ High Risk | Confidence: {prob:.2f}")
-
-                # Explanation via Featherless
-                explain_prompt = f"Explain this result based on the transcript: '{user_text}'. Result: {'Approved' if prediction == 1 else 'Denied'}."
-                explanation = llm_client.chat.completions.create(
-                    model="meta-llama/Meta-Llama-3.1-8B-Instruct",
-                    messages=[{"role": "user", "content": explain_prompt}],
-                    max_tokens=500
-                )
-                st.write(f"**AI Insight:** {explanation.choices[0].message.content}")
-
-            except sr.UnknownValueError:
-                st.error("Could not understand the audio. Please speak more clearly.")
-            except sr.RequestError as e:
-                st.error(f"Could not request results from Google Speech Recognition service; {e}")
-            except Exception as e:
-                st.error(f"Voice Processing Error: {e}")
+            except Exception:
+                st.error("❌ Voice not recognized.")
+                st.info("💡 Pro Tip: Our chatbot is more stable for text entry. Try it instead!")
+                if st.button("Switch to Chatbot"):
+                    st.session_state.selected_nav = "🤖 Chatbot"
+                    st.rerun()
