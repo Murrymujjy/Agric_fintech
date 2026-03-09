@@ -8,7 +8,6 @@ import voice_assistant
 
 # --- Global Translation Engine ---
 def get_translations(lang):
-    # Expanded to support the top African languages as requested [cite: 2025-12-20]
     translations = {
         "English": {"welcome": "Welcome to Farm Ledger Africa", "sub": "Select a feature to begin:", "chat": "AI Chatbot", "voice": "Voice Assistant", "profile": "Farmer Profile", "lender": "Lender Dashboard"},
         "Luganda (Uganda)": {"welcome": "Kulaba ku Farm Ledger Africa", "sub": "Londako wamanga okutandika:", "chat": "Chatbot y'amagezi", "voice": "Okukozesa eddoboozi", "profile": "Ebikwata ku mulimi", "lender": "Ebirowoozo by'abawozi"},
@@ -26,12 +25,13 @@ def get_translations(lang):
 def main():
     st.set_page_config(page_title="Farm Ledger Africa", page_icon="🌾", layout="wide")
 
-    # --- Global Navigation & Language State ---
+    # --- Initialization ---
     if "lang" not in st.session_state:
         st.session_state.lang = "English"
     if "selected_nav" not in st.session_state:
         st.session_state.selected_nav = "🏠 Home"
 
+    # --- Sidebar with Green Custom Styling ---
     with st.sidebar:
         st.title("🌍 Language / Olulimi")
         st.session_state.lang = st.selectbox("Global Language Setting:", 
@@ -39,35 +39,37 @@ def main():
              "Swahili (East Africa)", "Zulu (South Africa)", "Amharic (Ethiopia)", "Wolof (Senegal)", "Afrikaans (South Africa)"])
         
         st.markdown("---")
-        # Ensure the sidebar menu stays synced with home page clicks [cite: 2026-02-07]
         nav_options = ["🏠 Home", "🤖 Chatbot", "🎙️ Voice Assistant", "📋 Farmer Profile", "📊 Lender Dashboard", "📈 Insights"]
+        
         selected = option_menu(
             "Main Menu", nav_options,
             icons=["house", "robot", "mic", "person-badge", "speedometer2", "graph-up"],
             menu_icon="cast", 
-            default_index=nav_options.index(st.session_state.selected_nav)
+            default_index=nav_options.index(st.session_state.selected_nav),
+            styles={
+                "icon": {"color": "#2E7D32"}, 
+                "nav-link-selected": {"background-color": "#2E7D32"},
+            }
         )
         st.session_state.selected_nav = selected
 
     t = get_translations(st.session_state.lang)
 
-    # ---- Clickable Dashboard Logic [cite: 2026-02-07] ----
+    # ---- Interactive Home Dashboard ----
     if st.session_state.selected_nav == "🏠 Home":
-        st.title(f"🚜 {t['welcome']}")
+        st.markdown(f"<h1 style='color: #2E7D32;'>🚜 {t['welcome']}</h1>", unsafe_allow_html=True)
         st.markdown(f"### {t['sub']}")
 
         col1, col2 = st.columns(2)
         with col1:
             with st.container(border=True):
                 st.subheader(f"🤖 {t['chat']}")
-                st.write("Instant credit analysis via text.")
-                if st.button(f"Go to {t['chat']} ➔", key="btn_chat"):
+                if st.button(f"Open {t['chat']} ➔", key="btn_chat"):
                     st.session_state.selected_nav = "🤖 Chatbot"
                     st.rerun()
 
             with st.container(border=True):
                 st.subheader(f"📋 {t['profile']}")
-                st.write("Deep-dive manual credit evaluation.")
                 if st.button(f"Go to {t['profile']} ➔", key="btn_profile"):
                     st.session_state.selected_nav = "📋 Farmer Profile"
                     st.rerun()
@@ -75,15 +77,13 @@ def main():
         with col2:
             with st.container(border=True):
                 st.subheader(f"🎙️ {t['voice']}")
-                st.write("Multi-lingual voice-to-credit engine.")
-                if st.button(f"Go to {t['voice']} ➔", key="btn_voice"):
+                if st.button(f"Start {t['voice']} ➔", key="btn_voice"):
                     st.session_state.selected_nav = "🎙️ Voice Assistant"
                     st.rerun()
 
             with st.container(border=True):
                 st.subheader(f"📊 {t['lender']}")
-                st.write("Bulk institution processing hub.")
-                if st.button(f"Go to {t['lender']} ➔", key="btn_lender"):
+                if st.button(f"Open {t['lender']} ➔", key="btn_lender"):
                     st.session_state.selected_nav = "📊 Lender Dashboard"
                     st.rerun()
 
