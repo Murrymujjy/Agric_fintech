@@ -72,7 +72,7 @@ def render():
                 explain_prompt = f"The farmer was { 'approved' if prediction == 1 else 'flagged as high risk' } based on this voice input: '{user_text}'. Briefly explain why in one sentence."
                 explanation = client.chat.completions.create(
                     model="meta-llama/Meta-Llama-3.1-8B-Instruct",
-                    messages=[{"role": "user", "content": explain_prompt}]
+                    messages=[{"role": "user", "content": explain_prompt}],
                     max_tokens=500
                 )
                 st.write(explanation.choices[0].message.content)
